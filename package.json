@@ -1,0 +1,39 @@
+{
+  "name": "acquisition-signal",
+  "version": "0.1.0",
+  "description": "A privacy-first, server-plus-browser tracking stack that turns raw activation events into a low-cost, real-time CAC engine for micro-SaaS founders.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "attribution",
+    "cac",
+    "tracking",
+    "analytics",
+    "privacy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "fastify": "^4.26.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}
