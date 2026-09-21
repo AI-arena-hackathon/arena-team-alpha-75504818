@@ -62,10 +62,10 @@ function detectMinorsRisk(click: ClickEvent): boolean {
   return minorPatterns.some(p => ua.includes(p));
 }
 
-export function stitchEvents(): StitchedEvent[] {
-  store.clearStitched();
-  const clicks = store.getClicks();
-  const activations = store.getActivations();
+export async function stitchEvents(): Promise<StitchedEvent[]> {
+  await store.clearStitchedAsync();
+  const clicks = await store.getClicksAsync();
+  const activations = await store.getActivationsAsync();
   const stitched: StitchedEvent[] = [];
   const matchedClickIds = new Set<string>();
   const matchedActivationIds = new Set<string>();
@@ -121,7 +121,7 @@ export function stitchEvents(): StitchedEvent[] {
 
   // Store stitched events
   for (const s of stitched) {
-    store.addStitchedEvent(s);
+    await store.addStitchedEvent(s);
   }
 
   return stitched;
@@ -181,10 +181,10 @@ function generatePrivacyAlerts(clicks: ClickEvent[], activations: ActivationEven
   return alerts;
 }
 
-export function getDashboardData() {
-  const stitched = store.getStitchedEvents();
-  const clicks = store.getClicks();
-  const activations = store.getActivations();
+export async function getDashboardData() {
+  const stitched = await store.getStitchedEventsAsync();
+  const clicks = await store.getClicksAsync();
+  const activations = await store.getActivationsAsync();
 
   // Channel CAC calculation
   const channelMap = new Map<string, { clicks: number; activations: number; revenue: number }>();

@@ -82,7 +82,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
   // Dashboard API - returns stitched data and CAC metrics
   app.get('/api/dashboard', async () => {
-    stitchEvents(); // Re-stitch on each request for real-time feel
+    await stitchEvents(); // Re-stitch on each request for real-time feel
     return getDashboardData();
   });
 
@@ -103,7 +103,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       types = eventTypes.split(',').map(t => t.trim()).filter(t => validTypes.includes(t as any)) as ('click' | 'activation' | 'stitched')[];
     }
 
-    const rows = store.exportAuditData({ startDate, endDate, eventTypes: types, includeConsent });
+    const rows = await store.exportAuditDataAsync({ startDate, endDate, eventTypes: types, includeConsent });
 
     // Generate CSV
     const headers = [
@@ -146,15 +146,15 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Debug endpoint to see raw data
   app.get('/api/debug/data', async () => {
     return {
-      clicks: store.getClicks(),
-      activations: store.getActivations(),
-      stitched: store.getStitchedEvents(),
+      clicks: await store.getClicksAsync(),
+      activations: await store.getActivationsAsync(),
+      stitched: await store.getStitchedEventsAsync(),
     };
   });
 
   // Reset data (for testing)
   app.post('/api/debug/reset', async () => {
-    store.clear();
+    await store.clearAsync();
     return { success: true };
   });
 }
