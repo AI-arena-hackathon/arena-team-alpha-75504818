@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { store } from '../services/store';
 import { stitchEvents, getDashboardData } from '../services/stitcher';
-import { ClickEvent, ActivationEvent, HealthResponse } from '../types';
+import { ClickEvent, ActivationEvent, HealthResponse, AuditExportOptions, AuditExportRow } from '../types';
 
 const clickEventSchema = z.object({
   sessionId: z.string().min(1),
@@ -16,6 +16,10 @@ const clickEventSchema = z.object({
   acqId: z.string().optional(),
   referrer: z.string().optional(),
   userAgent: z.string().optional(),
+  ipHash: z.string().optional(),
+  consentGiven: z.boolean().optional(),
+  consentTimestamp: z.number().int().positive().optional(),
+  consentVersion: z.string().optional(),
 });
 
 const activationEventSchema = z.object({
@@ -25,6 +29,13 @@ const activationEventSchema = z.object({
   sessionId: z.string().optional(),
   revenue: z.number().nonnegative().optional(),
   metadata: z.record(z.unknown()).optional(),
+});
+
+const auditExportQuerySchema = z.object({
+  startDate: z.coerce.number().int().positive().optional(),
+  endDate: z.coerce.number().int().positive().optional(),
+  eventTypes: z.string().optional(), // comma-separated: click,activation,stitched
+  includeConsent: z.coerce.boolean().optional(),
 });
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
@@ -73,6 +84,63 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/dashboard', async () => {
     stitchEvents(); // Re-stitch on each request for real-time feel
     return getDashboardData();
+  });
+
+  // Audit CSV Export endpoint
+  app.get<{ Querystring: AuditExportOptions }>('/api/audit/export', async (request, reply) => {
+    const parseResult = auditExportQuerySchema.safeParse(request.query);
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: 'Invalid export parameters',
+        details: parseResult.error.flatten(),
+      });
+    }
+
+    const { startDate, endDate, eventTypes, includeConsent } = parseResult.data;
+    const validTypes = ['click', 'activation', 'stitched'] as const;
+    let types: ('click' | 'activation' | 'stitched')[] = ['click', 'activation', 'stitched'];
+    if (eventTypes) {
+      types = eventTypes.split(',').map(t => t.trim()).filter(t => validTypes.includes(t as any)) as ('click' | 'activation' | 'stitched')[];
+    }
+
+    const rows = store.exportAuditData({ startDate, endDate, eventTypes: types, includeConsent });
+
+    // Generate CSV
+    const headers = [
+      'eventType', 'sessionId', 'userId', 'timestamp', 'channel', 'creative', 'landingPage',
+      'revenue', 'matchType', 'confidence', 'consentGiven', 'consentTimestamp', 'consentVersion',
+      'ipHash', 'utmSource', 'utmMedium', 'utmCampaign', 'utmContent', 'utmTerm', 'acqId', 'plan'
+    ];
+
+    const csvRows = rows.map(row => [
+      row.eventType,
+      row.sessionId || '',
+      row.userId || '',
+      row.timestamp.toString(),
+      row.channel || '',
+      row.creative || '',
+      row.landingPage || '',
+      row.revenue?.toString() || '',
+      row.matchType || '',
+      row.confidence?.toString() || '',
+      row.consentGiven?.toString() || '',
+      row.consentTimestamp?.toString() || '',
+      row.consentVersion || '',
+      row.ipHash || '',
+      row.utmSource || '',
+      row.utmMedium || '',
+      row.utmCampaign || '',
+      row.utmContent || '',
+      row.utmTerm || '',
+      row.acqId || '',
+      row.plan || '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+    const csv = [headers.join(','), ...csvRows].join('\n');
+
+    reply.header('Content-Type', 'text/csv; charset=utf-8');
+    reply.header('Content-Disposition', `attachment; filename="audit-export-${Date.now()}.csv"`);
+    return csv;
   });
 
   // Debug endpoint to see raw data

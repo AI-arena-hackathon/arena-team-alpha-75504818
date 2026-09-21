@@ -1,5 +1,8 @@
-import { ClickEvent, ActivationEvent, StitchedEvent } from '../types';
+import { ClickEvent, ActivationEvent, StitchedEvent, PrivacyAlert } from '../types';
 import { store } from './store';
+
+const DATA_RETENTION_DAYS = 90;
+const MINORS_AGE_THRESHOLD = 16;
 
 function extractUtmParams(url: string): Record<string, string> {
   const params: Record<string, string> = {};
@@ -35,6 +38,28 @@ function simpleHash(str: string): string {
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36);
+}
+
+function detectCrossBorderRisk(click: ClickEvent): boolean {
+  // Simplified: flag if referrer suggests cross-border (e.g., different TLD)
+  if (!click.referrer) return false;
+  try {
+    const referrerHost = new URL(click.referrer).hostname;
+    const clickHost = new URL(click.url).hostname;
+    const referrerTld = referrerHost.split('.').pop() || '';
+    const clickTld = clickHost.split('.').pop() || '';
+    return referrerTld !== clickTld && referrerTld !== '' && clickTld !== '';
+  } catch {
+    return false;
+  }
+}
+
+function detectMinorsRisk(click: ClickEvent): boolean {
+  // Simplified: check user agent for minor-indicating patterns or metadata
+  // In production, this would integrate with age verification services
+  const ua = (click.userAgent || '').toLowerCase();
+  const minorPatterns = ['kids', 'children', 'family', 'parental', 'age_gate'];
+  return minorPatterns.some(p => ua.includes(p));
 }
 
 export function stitchEvents(): StitchedEvent[] {
@@ -100,6 +125,60 @@ export function stitchEvents(): StitchedEvent[] {
   }
 
   return stitched;
+}
+
+function generatePrivacyAlerts(clicks: ClickEvent[], activations: ActivationEvent[], stitched: StitchedEvent[]): PrivacyAlert[] {
+  const alerts: PrivacyAlert[] = [];
+  const now = Date.now();
+  const retentionMs = DATA_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  // 1. Consent missing alert
+  const clicksWithoutConsent = clicks.filter(c => !c.consentGiven);
+  if (clicksWithoutConsent.length > 0) {
+    alerts.push({
+      type: 'consent_missing',
+      severity: 'warning',
+      message: `${clicksWithoutConsent.length} click events lack explicit consent - verify consent collection flow`,
+      affectedRecords: clicksWithoutConsent.length,
+    });
+  }
+
+  // 2. Data retention alert
+  const expiredClicks = clicks.filter(c => now - c.timestamp > retentionMs);
+  const expiredActivations = activations.filter(a => now - a.timestamp > retentionMs);
+  const totalExpired = expiredClicks.length + expiredActivations.length;
+  if (totalExpired > 0) {
+    alerts.push({
+      type: 'data_retention',
+      severity: 'critical',
+      message: `${totalExpired} events exceed ${DATA_RETENTION_DAYS}-day retention policy - schedule deletion`,
+      affectedRecords: totalExpired,
+    });
+  }
+
+  // 3. Cross-border transfer risk
+  const crossBorderClicks = clicks.filter(detectCrossBorderRisk);
+  if (crossBorderClicks.length > 0) {
+    alerts.push({
+      type: 'cross_border',
+      severity: 'warning',
+      message: `${crossBorderClicks.length} clicks have cross-border referrer origins - verify SCC/adequacy decisions`,
+      affectedRecords: crossBorderClicks.length,
+    });
+  }
+
+  // 4. Minors detected risk
+  const minorRiskClicks = clicks.filter(detectMinorsRisk);
+  if (minorRiskClicks.length > 0) {
+    alerts.push({
+      type: 'minors_detected',
+      severity: 'critical',
+      message: `${minorRiskClicks.length} clicks from potential minor-audience contexts - verify COPPA/GDPR-K compliance`,
+      affectedRecords: minorRiskClicks.length,
+    });
+  }
+
+  return alerts;
 }
 
 export function getDashboardData() {
@@ -168,17 +247,8 @@ export function getDashboardData() {
     .sort((a, b) => b.activations - a.activations)
     .slice(0, 10);
 
-  // Privacy alerts (simplified)
-  const privacyAlerts = [];
-  const hasConsentMissing = clicks.some(c => !c.utmSource && !c.acqId);
-  if (hasConsentMissing) {
-    privacyAlerts.push({
-      type: 'consent_missing' as const,
-      severity: 'warning' as const,
-      message: 'Some clicks lack attribution parameters - verify consent collection',
-      affectedRecords: clicks.filter(c => !c.utmSource && !c.acqId).length,
-    });
-  }
+  // Enhanced privacy alerts
+  const privacyAlerts = generatePrivacyAlerts(clicks, activations, stitched);
 
   const totalClicks = clicks.length;
   const totalActivations = activations.length;

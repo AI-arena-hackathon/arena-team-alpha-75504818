@@ -10,6 +10,10 @@ export interface ClickEvent {
   acqId?: string;
   referrer?: string;
   userAgent?: string;
+  ipHash?: string;
+  consentGiven?: boolean;
+  consentTimestamp?: number;
+  consentVersion?: string;
 }
 
 export interface ActivationEvent {
@@ -50,6 +54,37 @@ export interface PrivacyAlert {
   severity: 'warning' | 'critical';
   message: string;
   affectedRecords: number;
+}
+
+export interface AuditExportRow {
+  eventType: 'click' | 'activation' | 'stitched';
+  sessionId?: string;
+  userId?: string;
+  timestamp: number;
+  channel?: string;
+  creative?: string;
+  landingPage?: string;
+  revenue?: number;
+  matchType?: string;
+  confidence?: number;
+  consentGiven?: boolean;
+  consentTimestamp?: number;
+  consentVersion?: string;
+  ipHash?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  acqId?: string;
+  plan?: string;
+}
+
+export interface AuditExportOptions {
+  startDate?: number;
+  endDate?: number;
+  eventTypes?: ('click' | 'activation' | 'stitched')[];
+  includeConsent?: boolean;
 }
 
 export interface DashboardData {

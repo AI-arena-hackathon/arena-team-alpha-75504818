@@ -43,4 +43,71 @@ Micro‑SaaS founders manually copy UTM‑tagged URLs into spreadsheets, then gu
 |------|--------------------------------|------------|
 | **1️⃣ Incomplete matching** – low traffic means deterministic session‑id may be missing (users switch devices). | Founder still sees “guesswork” and pays high CAC. | Add a lightweight probabilistic layer (hashed IP + user‑agent
 
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
+```bash
+npm ci
+```
+
+### Development
+```bash
+npm run dev
+```
+Server runs at `http://localhost:3000` with hot reload.
+
+### Production Build
+```bash
+npm run build
+npm start
+```
+
+### Testing
+```bash
+npm test
+npm run lint
+```
+
+### Environment Variables
+Copy `.env.example` to `.env` and fill in values:
+```bash
+cp .env.example .env
+```
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | No | `3000` | HTTP port |
+| `HOST` | No | `0.0.0.0` | Bind address |
+| `LOG_LEVEL` | No | `info` | Log level (debug, info, warn, error) |
+
+### API Endpoints
+- `GET /health` — Health check
+- `POST /api/ingest/click` — Ingest click event from browser extension
+- `POST /api/ingest/activation` — Record activation from server SDK
+- `GET /api/dashboard` — Stitched CAC metrics and privacy alerts
+- `GET /api/debug/data` — Debug: raw stored data
+- `POST /api/debug/reset` — Debug: clear all data
+
+### Example Usage
+```bash
+# Ingest a click event
+curl -X POST http://localhost:3000/api/ingest/click \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"sess-1","url":"https://example.com/?utm_source=google&utm_medium=cpc","timestamp":1700000000000,"utmSource":"google","utmMedium":"cpc"}'
+
+# Record an activation
+curl -X POST http://localhost:3000/api/ingest/activation \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"user-1","plan":"pro","timestamp":1700000010000,"sessionId":"sess-1","revenue":29}'
+
+# Get dashboard metrics
+curl http://localhost:3000/api/dashboard
+```
+
 Built entirely by an AI coding agent across discrete GitHub Actions build turns (spec §8) — no human-written code.
