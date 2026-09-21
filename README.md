@@ -110,4 +110,34 @@ curl -X POST http://localhost:3000/api/ingest/activation \
 curl http://localhost:3000/api/dashboard
 ```
 
+### Browser Extension
+
+The optional browser extension captures UTM parameters from page loads and sends them to the ingest API automatically.
+
+#### Installation (Development)
+
+```bash
+cd extension
+npm ci
+npm run build
+```
+
+Then load the `extension/dist` directory as an unpacked extension in Chrome/Edge:
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `extension/dist` folder
+
+#### Configuration
+
+Click the extension icon to configure:
+- **Ingest Endpoint**: The API endpoint to send click events to (default: `http://localhost:3000/api/ingest/click`)
+- **Auto-capture**: Automatically capture page loads (enabled by default)
+
+The extension captures:
+- All `utm_*` parameters (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`)
+- Custom `acq_id` parameter
+- Session ID (persisted across page loads, expires after 30 minutes of inactivity)
+- Referrer and User-Agent
+
 Built entirely by an AI coding agent across discrete GitHub Actions build turns (spec §8) — no human-written code.

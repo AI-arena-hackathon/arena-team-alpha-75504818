@@ -1,0 +1,17 @@
+{
+  "name": "acquisition-signal-extension",
+  "version": "0.1.0",
+  "description": "Browser extension for Acquisition Signal - captures UTM params and sends to ingest API",
+  "private": true,
+  "scripts": {
+    "build": "tsc && cp manifest.json dist/ && cp -r popup dist/ && cp -r icons dist/ 2>/dev/null || true",
+    "dev": "tsc -w",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}

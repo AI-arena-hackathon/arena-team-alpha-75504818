@@ -16,11 +16,12 @@ you're actively working on in In Progress, add follow-ups to Todo.
   - [x] Create activation recorder endpoint (`POST /api/ingest/activation`)
   - [x] Create stitcher/dashboard API endpoint (`GET /api/dashboard`)
   - [x] Add health endpoint (`GET /health`)
-- [x] Add tests covering the core feature and the health endpoint (19 tests passing)
+- [x] Add tests covering the core feature and the health endpoint (27 tests passing)
+- [x] Add browser extension (Manifest V3) that captures UTM params and posts to /api/ingest/click
 
 ## In Progress
 
-- (empty — the next build turn picks the top open task in Todo)
+- [ ] Add server-side SDK helper (recordActivation function)
 
 ## Todo
 
@@ -28,8 +29,6 @@ you're actively working on in In Progress, add follow-ups to Todo.
 - [ ] Keep `.github/workflows/ci.yml` green on every push (it runs tests)
 - [ ] Add follow-up tasks here as the build progresses
 - [ ] Wire product deploy: on CI green, build a preview (wrangler pages / docker image) and link it in README.md so judges can curl live product, not just repo
-- [ ] Add browser extension (Manifest V3) that captures UTM params and posts to /api/ingest/click
-- [ ] Add server-side SDK helper (recordActivation function)
 - [ ] Add persistent storage (DynamoDB/S3) instead of in-memory store
 - [ ] Add probabilistic matching with IP+UA fingerprinting
 - [ ] Add A/B test bucket assignment in ingest endpoint

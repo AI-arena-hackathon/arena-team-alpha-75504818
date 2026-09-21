@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acquisition Signal</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Acquisition Signal</h1>
+      <span class="status" id="status">Checking...</span>
+    </header>
+    <div class="section">
+      <h2>Configuration</h2>
+      <div class="form-group">
+        <label for="endpoint">Ingest Endpoint</label>
+        <input type="url" id="endpoint" placeholder="http://localhost:3000/api/ingest/click">
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="autoCapture" checked> Auto-capture page loads
+        </label>
+      </div>
+      <button id="saveConfig" class="btn btn-primary">Save</button>
+    </div>
+    <div class="section">
+      <h2>Session</h2>
+      <div class="info-row">
+        <span class="label">Session ID:</span>
+        <span class="value" id="sessionId">—</span>
+      </div>
+      <button id="resetSession" class="btn btn-secondary">Reset Session</button>
+    </div>
+    <div class="section">
+      <h2>Test</h2>
+      <button id="testCapture" class="btn btn-primary">Capture Current Page</button>
+      <div class="result" id="testResult"></div>
+    </div>
+    <footer>
+      <a href="https://github.com/acquisition-signal" target="_blank">Documentation</a>
+      <span>v0.1.0</span>
+    </footer>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
