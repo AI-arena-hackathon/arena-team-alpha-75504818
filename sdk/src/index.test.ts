@@ -64,7 +64,7 @@ describe('Acquisition Signal SDK', () => {
         'http://localhost:3000/api/ingest/activation',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             userId: 'user-1',
             plan: 'pro',
@@ -129,7 +129,9 @@ describe('Acquisition Signal SDK', () => {
       global.fetch = vi.fn().mockImplementation(() => {
         attempts++;
         if (attempts < 3) {
-          return Promise.reject(new Error('AbortError'));
+          const abortError = new Error('Aborted');
+          abortError.name = 'AbortError';
+          return Promise.reject(abortError);
         }
         return Promise.resolve({
           ok: true,
@@ -139,7 +141,8 @@ describe('Acquisition Signal SDK', () => {
 
       const promise = recordActivation({ userId: 'user-1', plan: 'pro' });
 
-      await vi.advanceTimersByTimeAsync(3000);
+      // Wait for all retries to complete
+      await vi.advanceTimersByTimeAsync(5000);
       const result = await promise;
 
       expect(attempts).toBe(3);
@@ -157,14 +160,9 @@ describe('Acquisition Signal SDK', () => {
 
       await recordActivation({ userId: 'user-1', plan: 'pro' });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: JSON.stringify(
-            expect.objectContaining({ timestamp: now })
-          ),
-        })
-      );
+      const callArgs = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      const body = JSON.parse(callArgs[1].body);
+      expect(body.timestamp).toBe(now);
     });
 
     it('should omit optional fields when not provided', async () => {

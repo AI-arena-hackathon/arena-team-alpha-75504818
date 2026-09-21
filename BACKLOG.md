@@ -21,7 +21,12 @@ you're actively working on in In Progress, add follow-ups to Todo.
 
 ## In Progress
 
-- [ ] Add server-side SDK helper (recordActivation function)
+- [ ] Add persistent storage (DynamoDB/S3) instead of in-memory store
+
+## Done
+
+- [x] Add server-side SDK helper (recordActivation function)
+- [x] Add privacy/compliance alerts with audit CSV export
 
 ## Todo
 
@@ -29,8 +34,6 @@ you're actively working on in In Progress, add follow-ups to Todo.
 - [ ] Keep `.github/workflows/ci.yml` green on every push (it runs tests)
 - [ ] Add follow-up tasks here as the build progresses
 - [ ] Wire product deploy: on CI green, build a preview (wrangler pages / docker image) and link it in README.md so judges can curl live product, not just repo
-- [ ] Add persistent storage (DynamoDB/S3) instead of in-memory store
 - [ ] Add probabilistic matching with IP+UA fingerprinting
 - [ ] Add A/B test bucket assignment in ingest endpoint
-- [ ] Add privacy/compliance alerts with audit CSV export
 - [ ] Build React dashboard UI (Vite + Netlify/Vercel)

@@ -81,7 +81,7 @@ export async function recordActivation(
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
       return {
         success: false,
         userId,
@@ -89,7 +89,7 @@ export async function recordActivation(
       };
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as { userId?: string };
     return {
       success: true,
       userId: result.userId || userId,
@@ -110,4 +110,5 @@ const sdk: SDKInstance = {
 };
 
 export default sdk;
-export { configure, getConfig, recordActivation };
+export { sdk as acquisitionSignal };
+export type { SDKConfig, RecordActivationOptions, RecordActivationResult, SDKInstance } from './types';

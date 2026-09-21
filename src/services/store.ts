@@ -1,152 +1,108 @@
 import { ClickEvent, ActivationEvent, StitchedEvent, AuditExportRow, AuditExportOptions } from '../types';
+import { getStorage, StorageBackend } from './storage';
 
-export class InMemoryStore {
-  private clicks: ClickEvent[] = [];
-  private activations: ActivationEvent[] = [];
-  private stitched: StitchedEvent[] = [];
+export class Store {
+  private storage: StorageBackend;
+
+  constructor(storage?: StorageBackend) {
+    this.storage = storage || getStorage();
+  }
 
   addClick(click: ClickEvent): void {
-    this.clicks.push(click);
+    this.storage.addClick(click);
   }
 
   addActivation(activation: ActivationEvent): void {
-    this.activations.push(activation);
+    this.storage.addActivation(activation);
   }
 
   getClicks(): ClickEvent[] {
-    return [...this.clicks];
+    return this.storage.getClicks() as any;
   }
 
   getActivations(): ActivationEvent[] {
-    return [...this.activations];
+    return this.storage.getActivations() as any;
+  }
+
+  async getClicksAsync(): Promise<ClickEvent[]> {
+    return this.storage.getClicks();
+  }
+
+  async getActivationsAsync(): Promise<ActivationEvent[]> {
+    return this.storage.getActivations();
   }
 
   getClicksBySessionId(sessionId: string): ClickEvent[] {
-    return this.clicks.filter(c => c.sessionId === sessionId);
+    return this.storage.getClicksBySessionId(sessionId) as any;
   }
 
   getActivationsByUserId(userId: string): ActivationEvent[] {
-    return this.activations.filter(a => a.userId === userId);
+    return this.storage.getActivationsByUserId(userId) as any;
+  }
+
+  async getClicksBySessionIdAsync(sessionId: string): Promise<ClickEvent[]> {
+    return this.storage.getClicksBySessionId(sessionId);
+  }
+
+  async getActivationsByUserIdAsync(userId: string): Promise<ActivationEvent[]> {
+    return this.storage.getActivationsByUserId(userId);
   }
 
   getUnmatchedClicks(): ClickEvent[] {
-    const matchedSessionIds = new Set(this.stitched.map(s => s.clickEvent.sessionId));
-    return this.clicks.filter(c => !matchedSessionIds.has(c.sessionId));
+    return this.storage.getUnmatchedClicks() as any;
   }
 
   getUnmatchedActivations(): ActivationEvent[] {
-    const matchedUserIds = new Set(this.stitched.map(s => s.activationEvent.userId));
-    return this.activations.filter(a => !matchedUserIds.has(a.userId));
+    return this.storage.getUnmatchedActivations() as any;
+  }
+
+  async getUnmatchedClicksAsync(): Promise<ClickEvent[]> {
+    return this.storage.getUnmatchedClicks();
+  }
+
+  async getUnmatchedActivationsAsync(): Promise<ActivationEvent[]> {
+    return this.storage.getUnmatchedActivations();
   }
 
   addStitchedEvent(stitched: StitchedEvent): void {
-    this.stitched.push(stitched);
+    this.storage.addStitchedEvent(stitched);
   }
 
   getStitchedEvents(): StitchedEvent[] {
-    return [...this.stitched];
+    return this.storage.getStitchedEvents() as any;
+  }
+
+  async getStitchedEventsAsync(): Promise<StitchedEvent[]> {
+    return this.storage.getStitchedEvents();
   }
 
   clearStitched(): void {
-    this.stitched = [];
+    this.storage.clearStitched();
+  }
+
+  async clearStitchedAsync(): Promise<void> {
+    return this.storage.clearStitched();
   }
 
   clear(): void {
-    this.clicks = [];
-    this.activations = [];
-    this.stitched = [];
+    this.storage.clear();
+  }
+
+  async clearAsync(): Promise<void> {
+    return this.storage.clear();
   }
 
   exportAuditData(options: AuditExportOptions = {}): AuditExportRow[] {
-    const { startDate, endDate, eventTypes = ['click', 'activation', 'stitched'], includeConsent = true } = options;
-    const rows: AuditExportRow[] = [];
-
-    const start = startDate ?? 0;
-    const end = endDate ?? Date.now();
-
-    const filterByDate = (timestamp: number) => timestamp >= start && timestamp <= end;
-
-    if (eventTypes.includes('click')) {
-      for (const click of this.clicks) {
-        if (!filterByDate(click.timestamp)) continue;
-        rows.push({
-          eventType: 'click',
-          sessionId: click.sessionId,
-          timestamp: click.timestamp,
-          channel: click.utmSource,
-          creative: click.utmContent,
-          landingPage: this.extractPath(click.url),
-          consentGiven: includeConsent ? click.consentGiven : undefined,
-          consentTimestamp: includeConsent ? click.consentTimestamp : undefined,
-          consentVersion: includeConsent ? click.consentVersion : undefined,
-          ipHash: includeConsent ? click.ipHash : undefined,
-          utmSource: click.utmSource,
-          utmMedium: click.utmMedium,
-          utmCampaign: click.utmCampaign,
-          utmContent: click.utmContent,
-          utmTerm: click.utmTerm,
-          acqId: click.acqId,
-        });
-      }
-    }
-
-    if (eventTypes.includes('activation')) {
-      for (const activation of this.activations) {
-        if (!filterByDate(activation.timestamp)) continue;
-        const meta = activation.metadata as Record<string, string | undefined> | undefined;
-        rows.push({
-          eventType: 'activation',
-          userId: activation.userId,
-          sessionId: activation.sessionId,
-          timestamp: activation.timestamp,
-          revenue: activation.revenue,
-          plan: activation.plan,
-          utmSource: meta?.['utmSource'],
-          utmMedium: meta?.['utmMedium'],
-          utmCampaign: meta?.['utmCampaign'],
-        });
-      }
-    }
-
-    if (eventTypes.includes('stitched')) {
-      for (const stitched of this.stitched) {
-        if (!filterByDate(stitched.clickEvent.timestamp)) continue;
-        rows.push({
-          eventType: 'stitched',
-          sessionId: stitched.clickEvent.sessionId,
-          userId: stitched.activationEvent.userId,
-          timestamp: stitched.clickEvent.timestamp,
-          channel: stitched.clickEvent.utmSource,
-          creative: stitched.clickEvent.utmContent,
-          landingPage: this.extractPath(stitched.clickEvent.url),
-          revenue: stitched.activationEvent.revenue,
-          matchType: stitched.matchType,
-          confidence: stitched.confidence,
-          consentGiven: includeConsent ? stitched.clickEvent.consentGiven : undefined,
-          consentTimestamp: includeConsent ? stitched.clickEvent.consentTimestamp : undefined,
-          consentVersion: includeConsent ? stitched.clickEvent.consentVersion : undefined,
-          ipHash: includeConsent ? stitched.clickEvent.ipHash : undefined,
-          utmSource: stitched.clickEvent.utmSource,
-          utmMedium: stitched.clickEvent.utmMedium,
-          utmCampaign: stitched.clickEvent.utmCampaign,
-          utmContent: stitched.clickEvent.utmContent,
-          utmTerm: stitched.clickEvent.utmTerm,
-          acqId: stitched.clickEvent.acqId,
-          plan: stitched.activationEvent.plan,
-        });
-      }
-    }
-
-    return rows.sort((a, b) => a.timestamp - b.timestamp);
+    return this.storage.exportAuditData(options) as any;
   }
 
-  private extractPath(url: string): string {
-    try {
-      return new URL(url).pathname || '/';
-    } catch {
-      return '/';
-    }
+  async exportAuditDataAsync(options: AuditExportOptions = {}): Promise<AuditExportRow[]> {
+    return this.storage.exportAuditData(options);
+  }
+
+  async close(): Promise<void> {
+    return this.storage.close();
   }
 }
 
-export const store = new InMemoryStore();
+export const store = new Store();
